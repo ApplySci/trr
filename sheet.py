@@ -30,7 +30,7 @@ KEYFILE = os.path.join(app_directory, "fcm-admin.json")
 def setup_logging():
     """Configure logging to write to both file and console"""
     # Clear the log file
-    with open("import.log", "w") as f:
+    with open("import.log", "w", encoding='utf-8') as f:
         f.write("")
 
     # Set up logging
@@ -40,11 +40,11 @@ def setup_logging():
     # Remove any existing handlers
     logger.handlers = []
 
-    # File handler
-    file_handler = logging.FileHandler("import.log")
+    # File handler with UTF-8 encoding
+    file_handler = logging.FileHandler("import.log", encoding='utf-8')
     file_handler.setLevel(logging.DEBUG)
 
-    # Console handler
+    # Console handler with UTF-8 encoding
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.DEBUG)
 
