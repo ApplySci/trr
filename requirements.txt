@@ -1,0 +1,11 @@
+## database stuff
+alembic
+sqlalchemy
+## read & write google sheets
+gspread
+## country names
+pycountry
+## timezones are hard
+pytz
+tzdata
+
