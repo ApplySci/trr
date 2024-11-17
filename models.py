@@ -25,13 +25,13 @@ class Player(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String)
     trr_id: Mapped[str] = mapped_column(String, unique=True)
-    ema_id: Mapped[Optional[str]] = mapped_column(String, unique=True, nullable=True)
-    club_id: Mapped[int] = mapped_column(ForeignKey("club.id"))
-    country_id: Mapped[str] = mapped_column(ForeignKey("country.id"))
+    ema_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    club_id: Mapped[Optional[int]] = mapped_column(ForeignKey("club.id"), nullable=True)
+    country_id: Mapped[Optional[str]] = mapped_column(ForeignKey("country.id"), nullable=True)
 
     # Relationships
-    club: Mapped["Club"] = relationship("Club", back_populates="players")
-    country: Mapped["Country"] = relationship("Country", back_populates="players")
+    club: Mapped[Optional["Club"]] = relationship("Club", back_populates="players")
+    country: Mapped[Optional["Country"]] = relationship("Country", back_populates="players")
     games: Mapped[List["Game"]] = relationship(
         "Game", secondary=player_game, back_populates="players"
     )
@@ -94,6 +94,7 @@ class Club(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     country_id: Mapped[str] = mapped_column(ForeignKey("country.id"))
+    code: Mapped[str] = mapped_column(String)
     town_region: Mapped[str] = mapped_column(String)
 
     # Relationships
