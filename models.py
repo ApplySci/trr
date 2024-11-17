@@ -1,4 +1,4 @@
-from sqlalchemy import Date, Enum, ForeignKey, Integer, Table
+from sqlalchemy import Column, Date, Enum, ForeignKey, Integer, Table
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.types import String
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -13,9 +13,9 @@ class Base(DeclarativeBase):
 player_game = Table(
     "player_game",
     Base.metadata,
-    mapped_column("player_id", Integer, ForeignKey("player.id"), primary_key=True),
-    mapped_column("game_id", Integer, ForeignKey("game.id"), primary_key=True),
-    mapped_column("score", Integer, nullable=False),
+    Column("player_id", Integer, ForeignKey("player.id"), primary_key=True),
+    Column("game_id", Integer, ForeignKey("game.id"), primary_key=True),
+    Column("score", Integer, nullable=False),
 )
 
 
@@ -84,10 +84,8 @@ class Tournament(Base):
 tournament_player = Table(
     "tournament_player",
     Base.metadata,
-    mapped_column(
-        "tournament_id", Integer, ForeignKey("tournament.id"), primary_key=True
-    ),
-    mapped_column("player_id", Integer, ForeignKey("player.id"), primary_key=True),
+    Column("tournament_id", Integer, ForeignKey("tournament.id"), primary_key=True),
+    Column("player_id", Integer, ForeignKey("player.id"), primary_key=True),
 )
 
 
