@@ -1,3 +1,8 @@
+# App files
+fcm-admin.json
+*.sqlite3
+config.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

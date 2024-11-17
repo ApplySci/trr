@@ -1,1 +1,1 @@
-# trr
+build an sqlite3 database of riichi tournament results 
