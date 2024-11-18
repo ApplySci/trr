@@ -315,16 +315,25 @@ class GSP:
 
         tournaments_dict = {}
         for row in tournaments_data:
+            # Skip if ID is empty or not a valid integer
+            if not row["ID"] or not str(row["ID"]).strip():
+                self.logger.warning(f"Skipping tournament with empty ID: {row}")
+                continue
+
+            try:
+                tournament_id = int(row["ID"])
+            except ValueError:
+                self.logger.warning(f"Skipping tournament with invalid ID: {row['ID']}")
+                continue
+
             host_nation = row.get("Host\nNation") or row.get("Host Nation")
             country = session.query(Country).filter_by(code_3=host_nation).first()
             if not country:
-                self.logger.warning(
-                    f"Could not find country for tournament {row['ID']}"
-                )
+                self.logger.warning(f"Could not find country for tournament {row['ID']}")
                 continue
 
             tournament = Tournament(
-                id=row["ID"],
+                id=tournament_id,  # Use the converted integer ID
                 first_day=datetime.strptime(row["First Day"], "%Y-%m-%d").date(),
                 country_id=country.id,
                 town=row["Town"],
@@ -333,7 +342,7 @@ class GSP:
                 status=row.get("Status", "")
             )
             session.add(tournament)
-            tournaments_dict[row["ID"]] = tournament
+            tournaments_dict[str(tournament_id)] = tournament  # Convert back to string for dict key
 
         session.flush()
         return tournaments_dict

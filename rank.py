@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
-from models import Game, player_game, RatingModel
+from models import Game, player_game, RatingModel, Player
 from openskill.models import PlackettLuce, BradleyTerryPart, ThurstoneMostellerPart
 
 
@@ -68,15 +68,55 @@ class RatingCalculator:
         return [(int(r.name), r.ordinal()) for r in self.players.values()]
 
 
-def get_player_rankings(model_type: RatingModel) -> list[tuple[int, float]]:
-    """Main function to get player rankings using specified model"""
-    calculator = RatingCalculator(model_type)
-    rankings = calculator.calculate_ratings()
-    return sorted(rankings, key=lambda x: x[1], reverse=True)
+def get_player_rankings() -> dict[RatingModel, list[tuple[int, float]]]:
+    """Calculate and store rankings for all three models"""
+    rankings = {}
+
+    # Calculate rankings for each model
+    for model_type in [
+        RatingModel.PLACKETT_LUCE,
+        RatingModel.BRADLEY_TERRY,
+        RatingModel.THURSTONE_MOSTELLER,
+    ]:
+        calculator = RatingCalculator(model_type)
+        rankings[model_type] = sorted(
+            calculator.calculate_ratings(), key=lambda x: x[1], reverse=True
+        )
+
+    # Update database with new rankings
+    with Session(calculator.engine) as session:
+        for model_type, model_rankings in rankings.items():
+            # Convert rankings list to score and rank dictionaries
+            scores = {player_id: score for player_id, score in model_rankings}
+            ranks = {
+                player_id: rank + 1
+                for rank, (player_id, _) in enumerate(model_rankings)
+            }
+
+            # Update all players
+            for player in session.query(Player).all():
+                if player.id in scores:
+                    # Set appropriate fields based on model type
+                    if model_type == RatingModel.PLACKETT_LUCE:
+                        player.plackett_luce_score = scores[player.id]
+                        player.plackett_luce_rank = ranks[player.id]
+                    elif model_type == RatingModel.BRADLEY_TERRY:
+                        player.bradley_terry_score = scores[player.id]
+                        player.bradley_terry_rank = ranks[player.id]
+                    elif model_type == RatingModel.THURSTONE_MOSTELLER:
+                        player.thurstone_mosteller_score = scores[player.id]
+                        player.thurstone_mosteller_rank = ranks[player.id]
+
+            session.commit()
+
+    return rankings
 
 
 if __name__ == "__main__":
     # Example usage
-    rankings = get_player_rankings(RatingModel.BRADLEY_TERRY)
-    for player_id, rating in rankings:
-        print(f"Player {player_id}: {rating}")
+    rankings = get_player_rankings()
+    
+    for model_type, model_rankings in rankings.items():
+        print(f"\n{model_type} Rankings:")
+        for player_id, rating in model_rankings[:10]:  # Show top 10
+            print(f"Player {player_id}: {rating}")

@@ -35,11 +35,25 @@ class Player(Base):
     trr_id: Mapped[str] = mapped_column(String, unique=True)
     ema_id: Mapped[str | None] = mapped_column(String, nullable=True)
     club_id: Mapped[int | None] = mapped_column(ForeignKey("club.id"), nullable=True)
-    country_id: Mapped[str | None] = mapped_column(ForeignKey("country.id"), nullable=True)
+    country_id: Mapped[str | None] = mapped_column(
+        ForeignKey("country.id"), nullable=True
+    )
+
+    # Rating scores
+    plackett_luce_score: Mapped[float | None] = mapped_column(nullable=True)
+    bradley_terry_score: Mapped[float | None] = mapped_column(nullable=True)
+    thurstone_mosteller_score: Mapped[float | None] = mapped_column(nullable=True)
+
+    # Ranking positions
+    plackett_luce_rank: Mapped[int | None] = mapped_column(nullable=True)
+    bradley_terry_rank: Mapped[int | None] = mapped_column(nullable=True)
+    thurstone_mosteller_rank: Mapped[int | None] = mapped_column(nullable=True)
 
     # Relationships
     club: Mapped["Club | None"] = relationship("Club", back_populates="players")
-    country: Mapped["Country | None"] = relationship("Country", back_populates="players")
+    country: Mapped["Country | None"] = relationship(
+        "Country", back_populates="players"
+    )
     games: Mapped[list["Game"]] = relationship(
         "Game", secondary=player_game, back_populates="players"
     )
@@ -60,16 +74,16 @@ class Game(Base):
     table: Mapped[str] = mapped_column(String)
     date: Mapped[datetime] = mapped_column(Date)
     is_tournament: Mapped[bool] = mapped_column(default=True)
-    tournament_id: Mapped[int | None] = mapped_column(ForeignKey("tournament.id"), nullable=True)
+    tournament_id: Mapped[int | None] = mapped_column(
+        ForeignKey("tournament.id"), nullable=True
+    )
     club_id: Mapped[int | None] = mapped_column(ForeignKey("club.id"), nullable=True)
 
     # Relationships
     tournament: Mapped["Tournament | None"] = relationship(
         "Tournament", back_populates="games"
     )
-    club: Mapped["Club | None"] = relationship(
-        "Club", back_populates="games"
-    )
+    club: Mapped["Club | None"] = relationship("Club", back_populates="games")
     players: Mapped[list["Player"]] = relationship(
         "Player", secondary=player_game, back_populates="games"
     )
