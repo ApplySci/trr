@@ -1,8 +1,16 @@
+from enum import Enum
+from datetime import datetime
+
 from sqlalchemy import Column, Date, Enum, ForeignKey, Integer, Table
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.types import String
 from sqlalchemy.ext.hybrid import hybrid_property
-from typing import List, Optional
+
+
+class RatingModel(Enum):
+    PLACKETT_LUCE = "plackett_luce"
+    BRADLEY_TERRY = "bradley_terry"
+    THURSTONE_MOSTELLER = "thurstone_mosteller"
 
 
 class Base(DeclarativeBase):
@@ -25,17 +33,17 @@ class Player(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String)
     trr_id: Mapped[str] = mapped_column(String, unique=True)
-    ema_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    club_id: Mapped[Optional[int]] = mapped_column(ForeignKey("club.id"), nullable=True)
-    country_id: Mapped[Optional[str]] = mapped_column(ForeignKey("country.id"), nullable=True)
+    ema_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    club_id: Mapped[int | None] = mapped_column(ForeignKey("club.id"), nullable=True)
+    country_id: Mapped[str | None] = mapped_column(ForeignKey("country.id"), nullable=True)
 
     # Relationships
-    club: Mapped[Optional["Club"]] = relationship("Club", back_populates="players")
-    country: Mapped[Optional["Country"]] = relationship("Country", back_populates="players")
-    games: Mapped[List["Game"]] = relationship(
+    club: Mapped["Club | None"] = relationship("Club", back_populates="players")
+    country: Mapped["Country | None"] = relationship("Country", back_populates="players")
+    games: Mapped[list["Game"]] = relationship(
         "Game", secondary=player_game, back_populates="players"
     )
-    tournaments: Mapped[List["Tournament"]] = relationship(
+    tournaments: Mapped[list["Tournament"]] = relationship(
         "Tournament", secondary="tournament_player", back_populates="players"
     )
 
@@ -50,19 +58,19 @@ class Game(Base):
     p4: Mapped[int] = mapped_column(ForeignKey("player.id"))
     round: Mapped[str] = mapped_column(String)
     table: Mapped[str] = mapped_column(String)
-    date: Mapped[Date] = mapped_column(Date)
+    date: Mapped[datetime] = mapped_column(Date)
     is_tournament: Mapped[bool] = mapped_column(default=True)
-    tournament_id: Mapped[Optional[int]] = mapped_column(ForeignKey("tournament.id"), nullable=True)
-    club_id: Mapped[Optional[int]] = mapped_column(ForeignKey("club.id"), nullable=True)
+    tournament_id: Mapped[int | None] = mapped_column(ForeignKey("tournament.id"), nullable=True)
+    club_id: Mapped[int | None] = mapped_column(ForeignKey("club.id"), nullable=True)
 
     # Relationships
-    tournament: Mapped[Optional["Tournament"]] = relationship(
+    tournament: Mapped["Tournament | None"] = relationship(
         "Tournament", back_populates="games"
     )
-    club: Mapped[Optional["Club"]] = relationship(
+    club: Mapped["Club | None"] = relationship(
         "Club", back_populates="games"
     )
-    players: Mapped[List["Player"]] = relationship(
+    players: Mapped[list["Player"]] = relationship(
         "Player", secondary=player_game, back_populates="games"
     )
 
@@ -71,7 +79,7 @@ class Tournament(Base):
     __tablename__ = "tournament"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    first_day: Mapped[Date] = mapped_column(Date)
+    first_day: Mapped[datetime] = mapped_column(Date)
     country_id: Mapped[str] = mapped_column(ForeignKey("country.id"))
     town: Mapped[str] = mapped_column(String)
     rules: Mapped[str] = mapped_column(String)
@@ -80,8 +88,8 @@ class Tournament(Base):
 
     # Relationships
     country: Mapped["Country"] = relationship("Country", back_populates="tournaments")
-    games: Mapped[List["Game"]] = relationship("Game", back_populates="tournament")
-    players: Mapped[List["Player"]] = relationship(
+    games: Mapped[list["Game"]] = relationship("Game", back_populates="tournament")
+    players: Mapped[list["Player"]] = relationship(
         "Player", secondary="tournament_player", back_populates="tournaments"
     )
 
@@ -105,8 +113,8 @@ class Club(Base):
 
     # Relationships
     country: Mapped["Country"] = relationship("Country", back_populates="clubs")
-    players: Mapped[List["Player"]] = relationship("Player", back_populates="club")
-    games: Mapped[List["Game"]] = relationship("Game", back_populates="club")
+    players: Mapped[list["Player"]] = relationship("Player", back_populates="club")
+    games: Mapped[list["Game"]] = relationship("Game", back_populates="club")
 
 
 class Country(Base):
@@ -117,8 +125,8 @@ class Country(Base):
     name_english: Mapped[str] = mapped_column(String)
 
     # Relationships
-    clubs: Mapped[List["Club"]] = relationship("Club", back_populates="country")
-    players: Mapped[List["Player"]] = relationship("Player", back_populates="country")
-    tournaments: Mapped[List["Tournament"]] = relationship(
+    clubs: Mapped[list["Club"]] = relationship("Club", back_populates="country")
+    players: Mapped[list["Player"]] = relationship("Player", back_populates="country")
+    tournaments: Mapped[list["Tournament"]] = relationship(
         "Tournament", back_populates="country"
     )

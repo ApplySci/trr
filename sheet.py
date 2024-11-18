@@ -12,7 +12,6 @@ from gspread.exceptions import APIError as GspreadAPIError
 from oauth2client.service_account import ServiceAccountCredentials
 from zoneinfo import ZoneInfo
 import pycountry
-from typing import Dict, List, Optional
 from models import Base, Player, Game, Tournament, Country, Club, player_game
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
@@ -106,7 +105,7 @@ class GSP:
 
         return conversions.get(code, code)
 
-    def _import_countries(self, session: Session) -> Dict[str, Country]:
+    def _import_countries(self, session: Session) -> dict[str, Country]:
         """Import countries and return dict mapping 3-letter code to Country object"""
         countries_ws = self.sheet.worksheet("Countries")
         countries_data = countries_ws.get_all_records()
@@ -187,7 +186,7 @@ class GSP:
             )
             session.add(club)
 
-    def _find_column(self, row: dict, variations: List[str]) -> str:
+    def _find_column(self, row: dict, variations: list[str]) -> str:
         """Helper function to find the correct column name from possible variations"""
         for var in variations:
             if var in row:
@@ -195,7 +194,7 @@ class GSP:
         print("Available columns:", list(row.keys()))
         raise KeyError(f"Could not find column. Tried: {variations}")
 
-    def _import_players(self, session: Session) -> Dict[str, Player]:
+    def _import_players(self, session: Session) -> dict[str, Player]:
         """Import players and return dict mapping TRR ID to Player object"""
         players_ws = self.sheet.worksheet("Players")
         players_data = players_ws.get_all_records(value_render_option="FORMATTED_VALUE")
@@ -297,7 +296,7 @@ class GSP:
 
         return players_dict
 
-    def _import_tournaments(self, session: Session) -> Dict[str, Tournament]:
+    def _import_tournaments(self, session: Session) -> dict[str, Tournament]:
         """Import tournaments and return dict mapping tournament ID to Tournament object"""
         tournaments_ws = self.sheet.worksheet("Tournaments")
 
@@ -341,7 +340,7 @@ class GSP:
 
     def _find_tournament(
         self, session: Session, game_date: datetime.date, town: str
-    ) -> Optional[Tournament]:
+    ) -> Tournament | None:
         """Find tournament based on date and town. Returns None if no match found."""
         # Get tournaments that start within 5 days before the game date
         potential_tournaments = (
@@ -364,7 +363,7 @@ class GSP:
 
         return potential_tournaments[0]
 
-    def _find_club(self, session: Session, town: str) -> Optional[Club]:
+    def _find_club(self, session: Session, town: str) -> Club | None:
         """Find club based on town. Returns None if no match found."""
         club = session.query(Club).filter(Club.town_region.ilike(f"%{town}%")).first()
         return club
