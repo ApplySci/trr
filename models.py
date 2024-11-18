@@ -51,11 +51,16 @@ class Game(Base):
     round: Mapped[str] = mapped_column(String)
     table: Mapped[str] = mapped_column(String)
     date: Mapped[Date] = mapped_column(Date)
-    tournament_id: Mapped[int] = mapped_column(ForeignKey("tournament.id"))
+    is_tournament: Mapped[bool] = mapped_column(default=True)
+    tournament_id: Mapped[Optional[int]] = mapped_column(ForeignKey("tournament.id"), nullable=True)
+    club_id: Mapped[Optional[int]] = mapped_column(ForeignKey("club.id"), nullable=True)
 
     # Relationships
-    tournament: Mapped["Tournament"] = relationship(
+    tournament: Mapped[Optional["Tournament"]] = relationship(
         "Tournament", back_populates="games"
+    )
+    club: Mapped[Optional["Club"]] = relationship(
+        "Club", back_populates="games"
     )
     players: Mapped[List["Player"]] = relationship(
         "Player", secondary=player_game, back_populates="games"
@@ -100,6 +105,7 @@ class Club(Base):
     # Relationships
     country: Mapped["Country"] = relationship("Country", back_populates="clubs")
     players: Mapped[List["Player"]] = relationship("Player", back_populates="club")
+    games: Mapped[List["Game"]] = relationship("Game", back_populates="club")
 
 
 class Country(Base):

@@ -30,7 +30,7 @@ KEYFILE = os.path.join(app_directory, "fcm-admin.json")
 def setup_logging():
     """Configure logging to write to both file and console"""
     # Clear the log file
-    with open("import.log", "w", encoding='utf-8') as f:
+    with open("import.log", "w", encoding="utf-8") as f:
         f.write("")
 
     # Set up logging
@@ -41,7 +41,7 @@ def setup_logging():
     logger.handlers = []
 
     # File handler with UTF-8 encoding
-    file_handler = logging.FileHandler("import.log", encoding='utf-8')
+    file_handler = logging.FileHandler("import.log", encoding="utf-8")
     file_handler.setLevel(logging.DEBUG)
 
     # Console handler with UTF-8 encoding
@@ -167,7 +167,7 @@ class GSP:
 
     def _import_clubs(self, session: Session) -> None:
         clubs_ws = self.sheet.worksheet("Clubs")
-        clubs_data = clubs_ws.get_all_records(value_render_option='FORMATTED_VALUE')
+        clubs_data = clubs_ws.get_all_records(value_render_option="FORMATTED_VALUE")
 
         for row in clubs_data:
             # Skip if code is empty, explicitly convert to string
@@ -251,9 +251,23 @@ class GSP:
             if club_code and club_code != "XXX":
                 club = session.query(Club).filter_by(code=club_code).first()
                 if not club:
-                    self.logger.warning(
-                        f"Could not find club '{club_code}' in database"
-                    )
+                    # Try to find country for the new club
+                    if country:  # Use the player's country
+                        # Create a new club
+                        club = Club(
+                            code=club_code,
+                            country_id=country.id,
+                            town_region=f"{club_code} - {country.name_english}"
+                        )
+                        session.add(club)
+                        session.flush()  # Get club.id
+                        self.logger.warning(
+                            f"Created missing club: {club_code} for country {country.name_english}"
+                        )
+                    else:
+                        self.logger.warning(
+                            f"Could not create club '{club_code}' - no country found for player"
+                        )
 
             # Handle duplicate EMA IDs
             if ema_id:
@@ -308,7 +322,9 @@ class GSP:
             host_nation = row.get("Host\nNation") or row.get("Host Nation")
             country = session.query(Country).filter_by(code_3=host_nation).first()
             if not country:
-                self.logger.warning(f"Could not find country for tournament {row['ID']}")
+                self.logger.warning(
+                    f"Could not find country for tournament {row['ID']}"
+                )
                 continue
 
             tournament = Tournament(
@@ -341,7 +357,6 @@ class GSP:
         )
 
         if len(potential_tournaments) == 0:
-            self.logger.error(f"No tournament found for game in {town} on {game_date}")
             return None
         elif len(potential_tournaments) > 1:
             self.logger.error(
@@ -350,6 +365,11 @@ class GSP:
             return potential_tournaments[0]  # Use first match
 
         return potential_tournaments[0]
+
+    def _find_club(self, session: Session, town: str) -> Optional[Club]:
+        """Find club based on town. Returns None if no match found."""
+        club = session.query(Club).filter(Club.town_region.ilike(f"%{town}%")).first()
+        return club
 
     def _import_games(self, session: Session) -> None:
         """Import games and player_game associations"""
@@ -412,20 +432,45 @@ class GSP:
             # Find tournament based on date and town
             game_date = datetime.strptime(row["Date"], "%Y-%m-%d").date()
             tournament = self._find_tournament(session, game_date, row["Town"])
-            if not tournament:
-                self.logger.info(f"Skipping game due to missing tournament")
-                continue
 
-            game = Game(
-                p1=players[0].id,
-                p2=players[1].id,
-                p3=players[2].id,
-                p4=players[3].id,
-                round="1",  # Default to round 1 since we don't have this info
-                table=str(row["Table"]),
-                date=game_date,
-                tournament_id=tournament.id,
-            )
+            # Initialize game attributes
+            game_attrs = {
+                "p1": players[0].id,
+                "p2": players[1].id,
+                "p3": players[2].id,
+                "p4": players[3].id,
+                "round": "1",  # Default to round 1 since we don't have this info
+                "table": str(row["Table"]),
+                "date": game_date,
+            }
+
+            if tournament:
+                # It's a tournament game
+                game_attrs.update(
+                    {
+                        "is_tournament": True,
+                        "tournament_id": tournament.id,
+                        "club_id": None,
+                    }
+                )
+            else:
+                # Try to find a club match
+                club = self._find_club(session, row["Town"])
+                if club:
+                    game_attrs.update(
+                        {
+                            "is_tournament": False,
+                            "tournament_id": None,
+                            "club_id": club.id,
+                        }
+                    )
+                else:
+                    self.logger.error(
+                        f"Could not find tournament or club for game in {row['Town']} on {game_date}"
+                    )
+                    continue
+
+            game = Game(**game_attrs)
             session.add(game)
             session.flush()  # Get game.id
 
@@ -444,9 +489,9 @@ class GSP:
                         All players: {[(p.name, p.id, p.trr_id) for p in players]}"""
                     )
                     continue
-                
+
                 seen_players.add(player.id)
-                
+
                 try:
                     stmt = player_game.insert().values(
                         player_id=player.id, game_id=game.id, score=score
