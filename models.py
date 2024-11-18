@@ -76,6 +76,7 @@ class Tournament(Base):
     town: Mapped[str] = mapped_column(String)
     rules: Mapped[str] = mapped_column(String)
     name: Mapped[str] = mapped_column(String)
+    status: Mapped[str] = mapped_column(String)
 
     # Relationships
     country: Mapped["Country"] = relationship("Country", back_populates="tournaments")

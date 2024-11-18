@@ -262,7 +262,7 @@ class GSP:
                         session.add(club)
                         session.flush()  # Get club.id
                         self.logger.warning(
-                            f"Created missing club: {club_code} for country {country.name_english}"
+                            f"Created missing club: {club_code} in {country.name_english}"
                         )
                     else:
                         self.logger.warning(
@@ -316,9 +316,6 @@ class GSP:
 
         tournaments_dict = {}
         for row in tournaments_data:
-            if row.get("Status") != "OK":
-                continue
-
             host_nation = row.get("Host\nNation") or row.get("Host Nation")
             country = session.query(Country).filter_by(code_3=host_nation).first()
             if not country:
@@ -334,6 +331,7 @@ class GSP:
                 town=row["Town"],
                 rules=row["Rules"],
                 name=row["Name"],
+                status=row.get("Status", "")
             )
             session.add(tournament)
             tournaments_dict[row["ID"]] = tournament
