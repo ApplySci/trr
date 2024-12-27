@@ -170,7 +170,7 @@ class GSP:
 
         for row in clubs_data:
             # Skip if code is empty, explicitly convert to string
-            code = str(row["Code"]).strip() if row["Code"] else ""
+            code = str(row["DB code"]).strip() if row["DB code"] else ""
             if not code:
                 continue
 
